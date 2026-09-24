@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using WepAPI.Data;
+using WepAPI.Repositories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,7 +16,9 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<AppDbContext>(options =>
         options.UseSqlServer(connectionString));
 
-var app = builder.Build();   // 🔴 dòng này giờ nằm SAU phần đăng ký DbContext
+builder.Services.AddScoped<IBookRepository, SQLBookRepository>();
+
+var app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
