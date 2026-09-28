@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using WepAPI.CustomActionFilters;
 using WepAPI.Data;
 using WepAPI.Models.DTO;
 using WepAPI.Repositories;
@@ -18,9 +19,11 @@ namespace WepAPI.Controllers
         }
 
         [HttpGet("get-all-books")]
-        public IActionResult GetAll()
+        public IActionResult GetAll([FromQuery] string? filterOn, [FromQuery] string? filterQuery,
+            [FromQuery] string? sortBy, [FromQuery] bool isAscending = true,
+            [FromQuery] int pageNumber = 1, [FromQuery] int pageSize = 100)
         {
-            var allBooks = _bookRepository.GetAllBooks();
+            var allBooks = _bookRepository.GetAllBooks(filterOn, filterQuery, sortBy, isAscending, pageNumber, pageSize);
             return Ok(allBooks);
         }
 
@@ -33,8 +36,13 @@ namespace WepAPI.Controllers
         }
 
         [HttpPost("add-book")]
+        [ValidateModel]
         public IActionResult AddBook([FromBody] AddBookRequestDTO addBookRequestDTO)
         {
+            if (!ValidateAddBook(addBookRequestDTO))
+            {
+                return BadRequest(ModelState);
+            }
             var bookAdd = _bookRepository.AddBook(addBookRequestDTO);
             return Ok(bookAdd);
         }
@@ -52,5 +60,36 @@ namespace WepAPI.Controllers
             var deleteBook = _bookRepository.DeleteBookById(id);
             return Ok(deleteBook);
         }
+
+        #region Private methods
+        private bool ValidateAddBook(AddBookRequestDTO addBookRequestDTO)
+        {
+            if (addBookRequestDTO == null)
+            {
+                ModelState.AddModelError(nameof(addBookRequestDTO), "Please add book data");
+                return false;
+            }
+
+            // kiem tra Description NotNull
+            if (string.IsNullOrEmpty(addBookRequestDTO.Description))
+            {
+                ModelState.AddModelError(nameof(addBookRequestDTO.Description),
+                    $"{nameof(addBookRequestDTO.Description)} cannot be null");
+            }
+
+            // kiem tra rating (0,5)
+            if (addBookRequestDTO.Rate < 0 || addBookRequestDTO.Rate > 5)
+            {
+                ModelState.AddModelError(nameof(addBookRequestDTO.Rate),
+                    $"{nameof(addBookRequestDTO.Rate)} cannot be less than 0 and more than 5");
+            }
+
+            if (ModelState.ErrorCount > 0)
+            {
+                return false;
+            }
+            return true;
+        }
+        #endregion
     }
 }
